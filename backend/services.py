@@ -4,6 +4,7 @@ import numpy as np
 from db import Session
 from models import StockData, Stocks
 
+# Function to get All companies
 def getCompanies(startIndx: int = 0):
     with Session() as session:
         data = session.query(Stocks).order_by(Stocks.id).offset(startIndx).limit(30).all()
@@ -52,11 +53,10 @@ def getStockData(symbol: str):
     df['low_52w'] = df['Low'].rolling(252, min_periods=1).min()
     df['volatility'] = df['daily_return'].rolling(20, min_periods=1).std()
 
-    df = df.tail(30)
-
+    df_copy = df.tail(30)
     rows = []
 
-    for _, row in df.iterrows():
+    for _, row in df_copy.iterrows():
         rows.append(StockData(
             symbol = symbol,
             date = row["Date"].date(),
@@ -70,6 +70,7 @@ def getStockData(symbol: str):
             high_52w = round(float(row["high_52w"]), 2),
             low_52w = round(float(row["low_52w"]), 2),
             volatility = round(float(row["volatility"]), 2),
+            avg_close = round(float(row["Close"].mean()), 2)
         ))
     
     with Session() as session:
@@ -88,7 +89,7 @@ def getStockDataFormatted(symbol: str):
 
             if not data:
                 print("No data found in DB, moving to internet")
-                data = getStockData(symbol)
+                data = getStockData(symbol).tail(30)
             
             return [
                 {
@@ -104,7 +105,8 @@ def getStockDataFormatted(symbol: str):
                     "ma_7": d.ma_7,
                     "high_52w": d.high_52w,
                     "low_52w": d.low_52w,
-                    "volatility": d.volatility
+                    "volatility": d.volatility,
+                    "avg_close": d.avg_close
                 }
                 for d in data
             ]
@@ -128,30 +130,95 @@ def getStockSummary(symbol: str):
 
             if not data:
                 print("No data found in DB, moving to internet")
-                data = getStockData(symbol)
+                data = getStockData(symbol).tail(30)
             
             return [
                 {
                     "id": d.id,
                     "symbol": d.symbol,
-                    "daily_return": d.daily_return,
-                    "ma_7": d.ma_7,
                     "high_52w": d.high_52w,
                     "low_52w": d.low_52w,
-                    "volatility": d.volatility
+                    "avg_close": d.avg_close,
                 }
                 for d in data
             ]
     except:
         print("Error fetching summary of the stock")
         return None
-    
+
+# function to interpret correlation between 2 stocks
+def interpretCorr(corr):
+    if corr > 0.7:
+        return "Strongly Positive", "These stocks move together. Diversification benefit is low."
+    elif corr > 0.3:
+        return "Moderately Positive", "Stocks show some correlation."
+    elif corr > -0.3:
+        return "Weak / No Correlation", "Stocks behave independently. Good for diversification."
+    elif corr > -0.7:
+        return "Moderately Negative", "Stocks often move in opposite directions."
+    else:
+        return "Strongly Negative", "Stocks strongly move opposite. Useful hedge." 
+     
 # Function to compare 2 stocks
 def getComparision(symbol1: str, symbol2: str):
-    stock1 = getStockSummary(symbol1)
-    stock2 = getStockSummary(symbol2)
+    stock1 = yf.download(symbol1, period="1y")
+    stock2 = yf.download(symbol2, period="1y")
 
-    
-            
-print(getStockSummary("INFY.NS"))
+    if isinstance(stock1.columns, pd.MultiIndex):
+        stock1.columns = stock1.columns.get_level_values(0)
 
+    if isinstance(stock2.columns, pd.MultiIndex):
+        stock2.columns = stock2.columns.get_level_values(0)
+
+    stock1 = stock1[['Close']]
+    stock2 = stock2[['Close']]
+
+    merged = pd.merge(
+        stock1,
+        stock2,
+        left_index=True,
+        right_index=True,
+        suffixes=('_1', '_2')
+    )
+
+    if merged.empty:
+        return {"error": "No overlapping data"}
+
+    corr = merged['Close_1'].corr(merged['Close_2'])
+
+    label, insight = interpretCorr(corr)
+
+    merged['norm_1'] = merged['Close_1'] / merged['Close_1'].iloc[0]
+    merged['norm_2'] = merged['Close_2'] / merged['Close_2'].iloc[0]
+
+    chart_data = [
+        {
+            "date": str(idx.date()),
+            "s1": round(row['norm_1'], 3),
+            "s2": round(row['norm_2'], 3)
+        }
+        for idx, row in merged.iterrows()
+    ]
+
+    print({
+        "symbol1": symbol1,
+        "symbol2": symbol2,
+        "correlation": round(float(corr), 3),
+        "correlation_label": label,
+        "insight": insight,
+        "diversification_score": round(1 - abs(corr), 3),
+        "chart_data": chart_data
+    })
+
+    return {
+        "symbol1": symbol1,
+        "symbol2": symbol2,
+        "correlation": round(float(corr), 3),
+        "correlation_label": label,
+        "insight": insight,
+        "diversification_score": round(1 - abs(corr), 3),
+        "chart_data": chart_data
+    }
+
+
+# getComparision("INFY.NS", "ICICIBANK.NS")

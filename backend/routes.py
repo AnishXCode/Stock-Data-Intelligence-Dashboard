@@ -13,20 +13,16 @@ def companies(startIndx: int = 0):
 @router.get("/data/{name}")
 def findStock(name: str):
     symbol = getStocksWithName(name)
-
     if not symbol:
         raise HTTPException(404, "Stock not found")
-
     return symbol
 
 # Get Stock data of last 30 days
 @router.get("/data/{symbol}")
 def getData(symbol: str):
     data = getStockDataFormatted(symbol)
-
     if not data:
         raise HTTPException(404, "No Data found")
-
     return data
 
 
@@ -34,7 +30,6 @@ def getData(symbol: str):
 @router.get("/summary/{symbol}")
 def summary(symbol: str):
     data = getStockSummary(symbol)
-
     return data
 
 

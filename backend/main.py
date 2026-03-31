@@ -2,11 +2,13 @@ from fastapi import FastAPI
 import models
 from db import engine
 from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
+from routes import router
 
 models.Base.metadata.create_all(bind=engine)
+
+
+app = FastAPI()
+app.include_router(router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,12 +21,6 @@ app.add_middleware(
 @app.get("/")
 def greet():
     return "Welcome to Backend of this Fintech project"
-
-@app.get("/companies")
-def get_all_companies():
-    return "These are all the available companies"
-
-
 
 
 
