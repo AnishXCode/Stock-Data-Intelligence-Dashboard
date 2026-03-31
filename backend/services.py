@@ -5,9 +5,9 @@ from db import Session
 from models import StockData, Stocks
 
 # Function to get All companies
-def getCompanies(startIndx: int = 0):
+def getCompanies(startIdx):
     with Session() as session:
-        data = session.query(Stocks).order_by(Stocks.id).offset(startIndx).limit(30).all()
+        data = session.query(Stocks).order_by(Stocks.id).offset(startIdx).limit(30).all()
 
         return [
             {
@@ -21,19 +21,24 @@ def getCompanies(startIndx: int = 0):
 
 # Function to search for stocks with name
 def getStocksWithName(name: str):
-    search = yf.Search(name)
-    for obj in search.quotes:
-        if obj.get("exchange") == 'NSI':
-            return obj["symbol"]
+    try:
+        search = yf.Search(name)
+        for obj in search.quotes:
+            if obj.get("exchange") == 'NSI':
+                return obj["symbol"]
 
-    return search.quotes[0] if search.quotes else None
+        return search.quotes[0] if search.quotes else None
+    except Exception as e:
+        print(f"Error searching stock with name: {e}")
+        return None
+
 
 # Function to download last 30 days of stock data
 def getStockData(symbol: str):
     try:
         df = yf.download(symbol, period="1y", interval="1d")
-    except:
-        print("Error downloading data")
+    except Exception as e:
+        print(f"Error downloading data: {e}")
         return None
     
     if df.empty:
@@ -46,16 +51,15 @@ def getStockData(symbol: str):
     df.reset_index(inplace=True)
     df.dropna(subset=['Close', 'Open'],inplace=True)
 
-    df.columns = df.columns.get_level_values(0)
     df['daily_return'] = (df['Close'] - df['Open']) / df['Open']
     df['ma_7'] = df['Close'].rolling(7, min_periods=1).mean()
     df['high_52w'] = df['High'].rolling(252, min_periods=1).max()
     df['low_52w'] = df['Low'].rolling(252, min_periods=1).min()
     df['volatility'] = df['daily_return'].rolling(20, min_periods=1).std()
+    df['avg_close'] = df['Close'].mean()
 
     df_copy = df.tail(30)
     rows = []
-
     for _, row in df_copy.iterrows():
         rows.append(StockData(
             symbol = symbol,
@@ -70,26 +74,31 @@ def getStockData(symbol: str):
             high_52w = round(float(row["high_52w"]), 2),
             low_52w = round(float(row["low_52w"]), 2),
             volatility = round(float(row["volatility"]), 2),
-            avg_close = round(float(row["Close"].mean()), 2)
+            avg_close = round(float(row["avg_close"]), 2)
         ))
-    
-    with Session() as session:
-        session.query(StockData).filter_by(symbol=symbol).delete()
-        session.bulk_save_objects(rows)
-        session.commit()
 
-    print("Saved the stock data")
-    return df
+    try:
+        with Session() as session:
+            session.query(StockData).filter_by(symbol=symbol).delete()
+            session.bulk_save_objects(rows)
+            session.commit()
+
+        print("Saved the stock data")
+        return df
+    except Exception as e:
+        print(f"Error saving data to database: {e}")
+        return None
 
 # Function to send last 30 days of stock data in JSON
 def getStockDataFormatted(symbol: str):
     try:
         with Session() as session:
-            data = session.query(StockData).filter_by(symbol).all()
+            data = session.query(StockData).filter_by(symbol=symbol).all()
 
             if not data:
                 print("No data found in DB, moving to internet")
-                data = getStockData(symbol).tail(30)
+                getStockData(symbol)
+                data = session.query(StockData).filter_by(symbol=symbol).all()
             
             return [
                 {
@@ -110,40 +119,45 @@ def getStockDataFormatted(symbol: str):
                 }
                 for d in data
             ]
-        
-    except:
-        print("Failed to send Stock Data")
+    except Exception as e:
+        print(f"Failed to send Stock Data: {e}")
 
 # Function to return summary of stocks
 def getStockSummary(symbol: str):
     try:
-        updatedSymbol = False
-        for letter in symbol:
-            if letter == ".":
-                updatedSymbol = True
-
-        if not updatedSymbol:
+        if "." not in symbol:
             symbol = symbol + ".NS"
 
         with Session() as session:
-            data = session.query(StockData).filter_by(symbol=symbol).all()
+            data = session.query(StockData).filter_by(symbol=symbol).first()
 
             if not data:
                 print("No data found in DB, moving to internet")
-                data = getStockData(symbol).tail(30)
-            
-            return [
-                {
-                    "id": d.id,
-                    "symbol": d.symbol,
-                    "high_52w": d.high_52w,
-                    "low_52w": d.low_52w,
-                    "avg_close": d.avg_close,
+                df = getStockData(symbol)
+
+                if df is None or df.empty:
+                    return None
+                
+                last = df.iloc[-1]
+
+                return {
+                    "symbol": symbol,
+                    "high_52w": round(float(last["high_52w"]), 2),
+                    "low_52w": round(float(last["low_52w"]), 2),
+                    "avg_close": round(float(df["Close"].mean()), 2)
                 }
-                for d in data
-            ]
-    except:
-        print("Error fetching summary of the stock")
+
+            
+            return {
+                "id": data.id,
+                "symbol": data.symbol,
+                "high_52w": data.high_52w,
+                "low_52w": data.low_52w,
+                "avg_close": data.avg_close,
+            }
+
+    except Exception as e:
+        print(f"Error fetching summary of the stock: {e}")
         return None
 
 # function to interpret correlation between 2 stocks
@@ -161,8 +175,12 @@ def interpretCorr(corr):
      
 # Function to compare 2 stocks
 def getComparision(symbol1: str, symbol2: str):
-    stock1 = yf.download(symbol1, period="1y")
-    stock2 = yf.download(symbol2, period="1y")
+    try:
+        stock1 = yf.download(symbol1, period="1y")
+        stock2 = yf.download(symbol2, period="1y")
+    except Exception as e:
+        print(f"Error downloading data of the stocks: {e}")
+        return None
 
     if isinstance(stock1.columns, pd.MultiIndex):
         stock1.columns = stock1.columns.get_level_values(0)
@@ -199,16 +217,6 @@ def getComparision(symbol1: str, symbol2: str):
         }
         for idx, row in merged.iterrows()
     ]
-
-    print({
-        "symbol1": symbol1,
-        "symbol2": symbol2,
-        "correlation": round(float(corr), 3),
-        "correlation_label": label,
-        "insight": insight,
-        "diversification_score": round(1 - abs(corr), 3),
-        "chart_data": chart_data
-    })
 
     return {
         "symbol1": symbol1,

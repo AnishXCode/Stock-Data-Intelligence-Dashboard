@@ -27,8 +27,8 @@ def getAllStocks():
         print(f"Fetched {len(df)} companies from NSE.")
         print(df.head(11))
         return df
-    except:
-        print("Fetching data failed")
+    except Exception as e:
+        print(f"Fetching data failed: {e}")
         return []
 
 def storeCompanies(df: pd.DataFrame, Session):
@@ -48,8 +48,8 @@ def storeCompanies(df: pd.DataFrame, Session):
             session.commit()
         
         print(f"Stored {len(rows)} companies in Stocks table")
-    except:
-        print("Failed to store data into database")
+    except Exception as e:
+        print(f"Failed to store data into database: {e}")
 
 
 def initDatabase():
@@ -60,7 +60,7 @@ def initDatabase():
         storeCompanies(data, Session)
 
         print("Successfully initialized Database")
-    except:
-        print("Database initialization failed")
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
 
 initDatabase()

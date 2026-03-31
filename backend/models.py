@@ -26,3 +26,4 @@ class StockData(Base):
     high_52w = Column(Float)
     low_52w = Column(Float)
     volatility = Column(Float)
+    avg_close = Column(Float)

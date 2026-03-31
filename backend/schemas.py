@@ -16,5 +16,6 @@ class StockSchema(BaseModel):
     high_52w: float
     low_52w: float
     volatility: float
+    avg_close: float
 
 
