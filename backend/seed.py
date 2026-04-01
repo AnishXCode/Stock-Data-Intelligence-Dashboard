@@ -3,6 +3,8 @@ from db import Session, engine
 from models import Stocks
 import models
 
+models.Base.metadata.create_all(bind=engine)
+
 def getAllStocks():
     try:
         import certifi
