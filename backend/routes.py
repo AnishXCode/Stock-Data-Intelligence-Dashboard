@@ -68,7 +68,8 @@ def compareStocks(
     symbol1: str = Query(..., description="First stock symbol e.g. INFY.NS"),
     symbol2: str = Query(..., description="Second stock symbol e.g. TCS.NS"),
 ):
-    symbol1, symbol2 = symbol1.upper(), symbol2.upper()
+    symbol1= symbol1.upper()
+    symbol2= symbol2.upper()
     result = getComparision(symbol1, symbol2)
     if not result or "error" in result:
         raise HTTPException(status_code=404, detail="Could not compare these symbols")

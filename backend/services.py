@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 from db import Session
 from models import StockData, Stocks
+import math
 
 # Function to get All companies
 def getCompanies(startIdx):
@@ -51,7 +52,6 @@ def getStocksWithName(name: str):
     except Exception as e:
         print(f"Error searching stock with name: {e}")
         return None
-
 
 # Function to download last 30 days of stock data
 def getStockData(symbol: str):
@@ -206,11 +206,15 @@ def getComparision(symbol1: str, symbol2: str):
             symbol2 = symbol2 + ".NS"
 
     try:
-        stock1 = yf.download(symbol1, period="1y")
-        stock2 = yf.download(symbol2, period="1y")
+        stock1 = yf.download(symbol1, period="1y", progress=False)
+        stock2 = yf.download(symbol2, period="1y", progress=False)
+
+        if stock1.empty or stock2.empty:
+            return {"error": f"Could not find data for {symbol1} or {symbol2}"}
+        
     except Exception as e:
         print(f"Error downloading data of the stocks: {e}")
-        return None
+        return {"error": "Connection to Market Data failed"}
 
     if isinstance(stock1.columns, pd.MultiIndex):
         stock1.columns = stock1.columns.get_level_values(0)
@@ -218,8 +222,8 @@ def getComparision(symbol1: str, symbol2: str):
     if isinstance(stock2.columns, pd.MultiIndex):
         stock2.columns = stock2.columns.get_level_values(0)
 
-    stock1 = stock1[['Close']]
-    stock2 = stock2[['Close']]
+    stock1 = stock1[['Close']].dropna()
+    stock2 = stock2[['Close']].dropna()
 
     merged = pd.merge(
         stock1,
@@ -232,12 +236,21 @@ def getComparision(symbol1: str, symbol2: str):
     if merged.empty:
         return {"error": "No overlapping data"}
 
+    if len(merged) < 2:
+        return {"error": "Insufficient overlapping data for comparison"}
+
     corr = merged['Close_1'].corr(merged['Close_2'])
+
+    if not isinstance(corr, (int, float)) or math.isnan(corr) or math.isinf(corr):
+        corr = 0.0
 
     label, insight = interpretCorr(corr)
 
-    merged['norm_1'] = merged['Close_1'] / merged['Close_1'].iloc[0]
-    merged['norm_2'] = merged['Close_2'] / merged['Close_2'].iloc[0]
+    base1 = float(merged['Close_1'].iloc[0])
+    base2 = float(merged['Close_2'].iloc[0])
+    
+    merged['norm_1'] = merged['Close_1'] / base1 if base1 != 0 else 1.0
+    merged['norm_2'] = merged['Close_2'] / base2 if base2 != 0 else 1.0
 
     chart_data = [
         {
@@ -254,7 +267,7 @@ def getComparision(symbol1: str, symbol2: str):
         "correlation": round(float(corr), 3),
         "correlation_label": label,
         "insight": insight,
-        "diversification_score": round(1 - abs(corr), 3),
+        "diversification_score": round(1 - abs(float(corr)), 3),
         "chart_data": chart_data
     }
 
