@@ -11,15 +11,24 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState([]);
   const [summary, setSummary] = useState(null);
   const [view, setView] = useState('single'); 
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSelect = async (stock) => {
     setSelectedStock(stock);
-    const [d, s] = await Promise.all([
-      getStockData(stock.symbol),
-      getStockSummary(stock.symbol)
-    ]);
-    setChartData(d.data);
-    setSummary(s.data);
+    setIsLoading(true); 
+    
+    try {
+      const [d, s] = await Promise.all([
+        getStockData(stock.symbol),
+        getStockSummary(stock.symbol)
+      ]);
+      setChartData(d.data);
+      setSummary(s.data);
+    } catch (error) {
+      console.error("Error fetching stock data:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const latest = chartData.length > 0 ? chartData[chartData.length - 1] : null;
@@ -37,7 +46,7 @@ export default function Dashboard() {
                 <div className="symbol-row">
                   <span className="badge">NSE</span>
                   <span className="symbol-txt">{selectedStock.symbol}</span>
-                  {latest && (
+                  {!isLoading && latest && (
                     <span className={`price-change ${latest.daily_return >= 0 ? 'pos' : 'neg'}`}>
                       {latest.daily_return >= 0 ? '▲' : '▼'} {Math.abs(latest.daily_return)}% Most Recent
                     </span>
@@ -50,7 +59,13 @@ export default function Dashboard() {
               </div>
             </header>
 
-            {view === 'single' ? (
+            {isLoading ? (
+              <div className="loading-state">
+                <div className="loader"></div>
+                <p>Retrieving market intelligence for {selectedStock.symbol}...</p>
+                <small>The backend may take a moment to wake up on Render.</small>
+              </div>
+            ) : view === 'single' ? (
               <>
                 <div className="section-label">Yearly Performance</div>
                 <div className="metrics-grid">

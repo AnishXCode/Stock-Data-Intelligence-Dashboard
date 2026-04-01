@@ -1,102 +1,342 @@
 # Stock Data Intelligence Dashboard
 
-A mini financial data platform built with **FastAPI + PostgreSQL + React** that collects, processes, and visualises NSE (National Stock Exchange) stock market data.
+A comprehensive financial data platform that collects, processes, and visualizes NSE (National Stock Exchange) stock market data with real-time charts, stock comparisons, and advanced analytics.
+
+**Live Demo:** [View Dashboard](#) | **API Docs:** [Swagger UI](#)
+
+---
+
+## Overview
+
+This full-stack application provides a complete solution for analyzing Indian stock market data (NSE). Users can:
+
+- **Search** for companies from the NSE listing
+- **View** interactive price charts with historical data
+- **Analyze** stock metrics (52-week high/low, volatility, moving averages)
+- **Compare** multiple stocks to analyze correlation and diversification benefits
+- **Explore** detailed stock data in interactive tables
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
+### Backend
+| Component | Technology |
 |---|---|
-| Backend | FastAPI (Python) |
+| Framework | FastAPI (Python 3.13) |
 | Database | PostgreSQL |
 | ORM | SQLAlchemy |
-| Data Source | yfinance, NSE EQUITY_L.csv |
-| Data Processing | Pandas, NumPy |
-| Frontend | React + Recharts |
+| Data Sources | yfinance, NSE API |
+| Data Processing | Pandas |
+| Server | Uvicorn |
+
+### Frontend
+| Component | Technology |
+|---|---|
+| Framework | React 19 |
+| Build Tool | Vite |
+| UI Charts | Recharts |
+| HTTP Client | Axios |
+| Icons | Lucide React |
+| Linting | ESLint |
 
 ---
 
 ## Project Structure
 
 ```
-backend/
-├── main.py          # FastAPI app entry point
-├── routes.py        # All API route definitions
-├── services.py      # Business logic (data fetch, compute, query)
-├── models.py        # SQLAlchemy DB models
-├── schemas.py       # Pydantic response schemas
-├── db.py            # DB connection and session setup
-├── seed.py          # One-time DB seeder (NSE company list)
-└── requirements.txt
+.
+├── README.md                 # This file
+├── docker-compose.yml        # Docker setup
+├── render.yaml              # Render.com deployment config
+│
+├── backend/                 # FastAPI backend
+│   ├── main.py             # App entry point
+│   ├── routes.py           # API routes
+│   ├── services.py         # Business logic
+│   ├── models.py           # SQLAlchemy ORM models
+│   ├── schemas.py          # Pydantic response schemas
+│   ├── db.py               # Database configuration
+│   ├── seed.py             # NSE data seeder
+│   ├── requirements.txt     # Python dependencies
+│   ├── Dockerfile          # Docker image
+│   ├── docker-compose.yml  # Local dev environment
+│   └── README.md           # Backend documentation
+│
+└── frontend/                # React frontend
+    ├── src/
+    │   ├── components/     # React components
+    │   ├── pages/         # Page components
+    │   ├── api/           # API integration
+    │   ├── App.jsx        # Root component
+    │   ├── main.jsx       # React entry
+    │   └── index.css      # Global styles
+    ├── public/            # Static assets
+    ├── package.json       # Node dependencies
+    ├── vite.config.js     # Vite configuration
+    └── README.md          # Frontend documentation
 ```
 
 ---
 
-## Setup & Installation
+## Quick Start
 
-### 1. Prerequisites
+### Prerequisites
 
-- Python 3.10+
-- PostgreSQL running locally
-- Node.js 18+ (for frontend)
+- **Backend:** Python 3.10+, PostgreSQL
+- **Frontend:** Node.js 18+
 
-### 2. Create the database
+### Option 1: Docker (Backend) + Manual Frontend (Recommended)
 
+**Backend & Database (Docker):**
 ```bash
-createdb fintech
+cd backend
+docker-compose up --build
 ```
 
-### 3. Install Python dependencies
+**Frontend (in a new terminal):**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
+**Access:**
+- Backend API: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
+- Swagger UI: `http://localhost:8000/docs`
+- Database: `localhost:5433` (PostgreSQL)
+
+### Option 2: Manual Setup (Everything Locally)
+
+**Backend:**
 ```bash
 cd backend
 python -m venv env
-source env/bin/activate        # Windows: env\Scripts\activate
+source env/bin/activate              # Windows: env\Scripts\activate
 pip install -r requirements.txt
-```
-
-### 4. Configure the database URL
-
-In `db.py`, update the connection string to match your Postgres credentials:
-
-```python
-DATABASE_URL = "postgresql://your_user:your_password@localhost:5432/fintech"
-```
-
-### 5. Seed the database
-
-Fetches all EQ-series companies from NSE and stores them in Postgres. Run this once:
-
-```bash
-python seed.py 
-```
-
-### 6. Start the API server
-
-```bash
+# Update DB credentials in db.py
+python seed.py                         # Seed NSE companies
 uvicorn main:app --reload
 ```
 
-API is now live at `http://localhost:8000`
-Swagger UI is at `http://localhost:8000/docs`
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Documentation
+
+- **[Backend README](./backend/README.md)** - API endpoints, data models, setup details
+- **[Frontend README](./frontend/README.md)** - Components, features, deployment guide
 
 ---
 
 ## API Endpoints
 
-### `GET /`
-Health check.
+### Core Endpoints
 
-**Response:**
-```json
-"Welcome to Backend of this Fintech project"
+| Endpoint | Method | Description |
+|---|---|---|
+| `/` | GET | Health check |
+| `/companies?startIdx=0` | GET | List NSE companies (paginated) |
+| `/search/{name}` | GET | Search stock by company name |
+| `/data/{symbol}` | GET | Historical OHLCV + computed metrics |
+| `/summary/{symbol}` | GET | 52-week stats and averages |
+| `/compare?symbol1=X&symbol2=Y` | GET | Compare two stocks |
+
+See [Backend README](./backend/README.md) for complete API documentation.
+
+---
+
+## Key Features
+
+### 1. Stock Search & Discovery
+- Paginated company listing from NSE
+- Real-time search with autocomplete
+- Company details and listing dates
+
+### 2. Interactive Charts
+- Line charts with Recharts
+- Responsive design for all devices
+- Real-time price data from yfinance
+
+### 3. Stock Analytics
+- **Daily Return**: Intraday percentage change
+- **Moving Average (MA-7)**: 7-day trend
+- **52-Week High/Low**: Year performance bounds
+- **Volatility**: 20-day rolling standard deviation
+- **Average Close**: Historical price reference
+
+### 4. Stock Comparison
+- **Correlation Analysis**: Pearson correlation between two stocks
+- **Diversification Score**: 1 - |correlation| (0-1 scale)
+- **Insight Labels**: Plain-English interpretation
+- **1-Year Chart Data**: Normalized price comparison
+
+### 5. Responsive UI
+- Mobile-first design
+- Sidebar navigation
+- Summary cards with key metrics
+- Sortable data tables
+
+---
+
+## 💾 Data Model
+
+### Stocks Table
+```sql
+id, symbol, name, date_listing
+```
+
+### StockData Table
+```sql
+id, symbol, date, open, close, high, low, volume,
+daily_return, ma_7, high_52w, low_52w, volatility, avg_close
 ```
 
 ---
 
-### `GET /companies?startIdx=0`
-Returns 30 NSE-listed companies at a time (paginated).
+## Data Flow
+
+```
+NSE EQUITY_L.csv ──→ seed.py ──→ PostgreSQL (stocks table)
+                                      ↓
+                              services.py (queries + compute)
+                                      ↓
+                    yfinance API ──→ StockData table
+                                      ↓
+                                FastAPI routes
+                                      ↓
+                                React Frontend
+```
+
+---
+
+## Development
+
+### Run Tests
+```bash
+cd backend
+pytest
+```
+
+### Lint Code
+```bash
+cd frontend
+npm run lint
+```
+
+### Build Frontend
+```bash
+cd frontend
+npm run build
+```
+
+---
+
+## Deployment
+
+### Docker
+```bash
+docker-compose up --build
+```
+
+### Render.com
+Push to GitHub and Render automatically deploys via `render.yaml`:
+```bash
+git push origin main
+```
+
+### Manual Deployment
+- Backend: Python hosting (Render, Railway, Heroku)
+- Frontend: Static hosting (Vercel, Netlify, GitHub Pages)
+- Database: Managed PostgreSQL (AWS RDS, Render)
+
+---
+
+## Computed Metrics
+
+| Metric | Formula | Use Case |
+|---|---|---|
+| `daily_return` | `(close - open) / open` | Intraday volatility |
+| `ma_7` | 7-day rolling mean | Short-term trend |
+| `high_52w` | 252-day rolling max | Annual performance peak |
+| `low_52w` | 252-day rolling min | Annual performance trough |
+| `volatility` | 20-day rolling std dev | Risk assessment |
+| `avg_close` | Mean close price | Price baseline |
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -m 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Open a Pull Request
+
+**Code Guidelines:**
+- Follow PEP 8 (Python) and ES6+ (JavaScript)
+- Run linting before committing
+- Add comments for complex logic
+- Test changes thoroughly
+
+---
+
+## Known Limitations
+
+- Stock symbols must include `.NS` suffix (NSE convention)
+- Data limited to EQ-series stocks (excludes bonds, ETFs, SMEs)
+- yfinance may rate-limit requests during peak hours
+- Historical data cached in local database
+
+---
+
+## License
+
+This project is provided as-is for educational and personal use.
+
+---
+
+## Acknowledgments
+
+- **yfinance**: Yahoo Finance data API
+- **NSE**: National Stock Exchange of India
+- **FastAPI**: Modern Python web framework
+- **React**: UI library
+- **Recharts**: Charting library
+
+---
+
+## GitHub Checklist
+
+- [x] Complete project structure
+- [x] API documentation
+- [x] Frontend components documented
+- [x] Setup instructions included
+- [x] Docker configuration ready
+- [x] .gitignore properly configured
+- [x] Requirements/dependencies cleaned
+- [x] README files comprehensive
+- [x] Both backend and frontend READMEs
+- [x] Contributing guidelines included
+
+---
+
+## Quick Links
+
+- **Issues**: [Report bugs or request features](../../issues)
+- **Pull Requests**: [Contribute code improvements](../../pulls)
+- **Discussions**: [Ask questions and share ideas](../../discussions)
+
+---
+
+**Last Updated:** February 2026
 
 | Query Param | Type | Default | Description |
 |---|---|---|---|
@@ -119,13 +359,20 @@ Returns 30 NSE-listed companies at a time (paginated).
 ---
 
 ### `GET /search/{name}`
-Searches for a stock by company name using yfinance. Returns the NSE symbol.
+Searches for a stock by company name using yfinance. Returns the Stock Data.
 
 **Example:** `GET /search/infosys`
 
 **Response:**
 ```json
-"INFY.NS"
+[
+  {
+    "id": 882,
+    "name": "Infosys Limited",
+    "symbol": "INFY",
+    "date_listing": "08-FEB-1995"
+  }
+]
 ```
 
 ---

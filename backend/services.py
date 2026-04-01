@@ -41,7 +41,7 @@ def getStocksWithName(name: str):
     try:
         search = yf.Search(name)
         for obj in search.quotes:
-            if obj.get("exchange") in ['NSI', 'BSE']:
+            if obj.get("exchange") in ['NSI']:
                 return obj.get("symbol")
         
         if search.quotes and "symbol" in search.quotes[0]:

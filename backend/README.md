@@ -8,12 +8,12 @@ A mini financial data platform built with **FastAPI + PostgreSQL + React** that 
 
 | Layer | Technology |
 |---|---|
-| Backend | FastAPI (Python) |
+| Backend | FastAPI (Python 3.13) |
 | Database | PostgreSQL |
 | ORM | SQLAlchemy |
 | Data Source | yfinance, NSE EQUITY_L.csv |
-| Data Processing | Pandas, NumPy |
-| Frontend | React + Recharts |
+| Data Processing | Pandas |
+| Server | Uvicorn |
 
 ---
 
@@ -21,14 +21,17 @@ A mini financial data platform built with **FastAPI + PostgreSQL + React** that 
 
 ```
 backend/
-├── main.py          # FastAPI app entry point
-├── routes.py        # All API route definitions
-├── services.py      # Business logic (data fetch, compute, query)
-├── models.py        # SQLAlchemy DB models
-├── schemas.py       # Pydantic response schemas
-├── db.py            # DB connection and session setup
-├── seed.py          # One-time DB seeder (NSE company list)
-└── requirements.txt
+├── main.py              # FastAPI app entry point & route registration
+├── routes.py            # All API endpoint definitions
+├── services.py          # Business logic (data fetch, compute metrics, queries)
+├── models.py            # SQLAlchemy ORM database models
+├── schemas.py           # Pydantic request/response validation schemas
+├── db.py                # Database connection and session setup
+├── seed.py              # One-time database seeder (NSE company list)
+├── requirements.txt     # Python dependencies
+├── Dockerfile           # Docker image configuration
+├── docker-compose.yml   # Local development environment setup
+└── README.md            # This file
 ```
 
 ---
@@ -80,6 +83,31 @@ uvicorn main:app --reload
 
 API is now live at `http://localhost:8000`
 Swagger UI is at `http://localhost:8000/docs`
+
+---
+
+## Docker Setup
+
+### Build and Run with Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+This will:
+- Build the FastAPI backend
+- Start PostgreSQL database
+- Run database migrations and seeding
+- Expose API on `http://localhost:8000`
+
+### Environment Variables
+
+Create a `.env` file in the backend directory:
+
+```bash
+DATABASE_URL=postgresql://postgres:password@db:5432/fintech
+PYTHON_ENV=development
+```
 
 ---
 
@@ -257,3 +285,92 @@ yfinance API ──► services.py ──► StocksData table (OHLCV + metrics)
 - Stock symbols must include the `.NS` suffix for NSE (e.g. `INFY.NS`, `TCS.NS`). The `/summary` endpoint auto-appends `.NS` if missing.
 - The seeder filters to `SERIES = EQ` only, excluding bonds, ETFs, and SME-listed instruments.
 - Data is cached in Postgres — yfinance is only called when a symbol isn't in the local DB.
+
+---
+
+## Dependencies
+
+### Core Dependencies
+
+| Package | Version | Purpose |
+|---|---|---|
+| `fastapi` | 0.135.2 | Web framework |
+| `uvicorn` | Latest | ASGI server |
+| `sqlalchemy` | Latest | ORM for database |
+| `psycopg2-binary` | 2.9.11 | PostgreSQL adapter |
+| `yfinance` | Latest | Yahoo Finance API |
+| `pandas` | 3.0.1 | Data manipulation |
+| `requests` | 2.32.3 | HTTP library (NSE API) |
+| `certifi` | 2026.2.25 | SSL certificates |
+
+Run `pip install -r requirements.txt` to install all dependencies.
+
+---
+
+## Troubleshooting
+
+### Database Connection Error
+**Problem:** `psycopg2.OperationalError: could not connect to server`
+
+**Solution:**
+1. Ensure PostgreSQL is running
+2. Verify credentials in `db.py`
+3. Create database: `createdb fintech`
+
+### yfinance Rate Limiting
+**Problem:** `HTTPError 429: Too Many Requests`
+
+**Solution:**
+- Data is cached in PostgreSQL after first fetch
+- Wait a few minutes and retry
+- Limit concurrent requests
+
+### Port Already in Use
+**Problem:** `Address already in use (:8000)`
+
+**Solution:**
+```bash
+# Kill process on port 8000
+lsof -ti:8000 | xargs kill -9
+```
+
+### Seed Script Fails
+**Problem:** Hash or validation errors during `python seed.py`
+
+**Solution:**
+```bash
+# Clear any partial data and retry
+python seed.py --reset
+```
+
+---
+
+## Performance Notes
+
+- **Data Caching**: Stock data is cached in PostgreSQL after first fetch to minimize API calls
+- **Pagination**: `/companies` endpoint returns 30 records per page
+- **Query Optimization**: Use indexes on `symbol` and `date` columns
+- **Batch Operations**: Consider pagination when handling large datasets
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Make changes and test thoroughly
+4. Commit: `git commit -m 'Add new feature'`
+5. Push: `git push origin feature/new-feature`
+6. Open a Pull Request
+
+**Code Style:**
+- Follow PEP 8 (Python style guide)
+- Use type hints for function parameters
+- Write docstrings for complex functions
+- Test all API endpoints
+
+---
+
+## License
+
+This project is provided for educational purposes.

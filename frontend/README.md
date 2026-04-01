@@ -1,10 +1,44 @@
 # Stock Data Intelligence Dashboard - Frontend
 
-A modern React-based frontend for visualizing and comparing NSE (National Stock Exchange) stock market data. This dashboard provides interactive charts, company search, stock comparisons, and detailed data tables.
+A modern React-based frontend for visualizing and comparing NSE (National Stock Exchange) stock market data. This dashboard provides interactive charts, company search, stock comparisons, and detailed data tables with a responsive, user-friendly interface.
+
+**Backend:** [See Backend Documentation](../backend/README.md)
 
 ---
 
-## Tech Stack
+## Key Features
+
+### Stock Search & Discovery
+- Real-time search for NSE-listed companies
+- Paginated company browser with 30 stocks per page
+- View company listing dates and details
+
+### Interactive Charts
+- Line charts with Recharts for price visualization
+- Fully responsive design (desktop, tablet, mobile)
+- Interactive tooltips and zoom capabilities
+- Historical data visualization (1 month)
+
+### Stock Analytics Dashboard
+- Current price with percentage changes
+- 52-week high/low price ranges
+- Moving averages (7-day MA)
+- Volatility metrics
+- Average closing price
+
+### Stock Comparison Engine
+- Side-by-side comparison of multiple stocks
+- Correlation analysis (Pearson correlation)
+- Diversification score calculation
+- Normalized price charts for easy comparison
+
+### Data Tables
+- Detailed historical stock data
+- Sortable columns
+- Filterable data
+- Display of all computed metrics
+
+---
 
 | Layer | Technology |
 |---|---|
@@ -82,7 +116,7 @@ npm install
 Edit `src/api/api.js` and ensure the API base URL matches your backend:
 
 ```javascript
-const API_BASE_URL = 'http://localhost:8000/api'; // Adjust as needed
+const API_BASE_URL = 'http://localhost:8000';
 ```
 
 ---
@@ -225,12 +259,79 @@ npm install
 
 ---
 
+## Dependencies
+
+### Core Dependencies
+
+| Package | Version | Purpose |
+|---|---|---|
+| `react` | 19.2.4 | UI library |
+| `react-dom` | 19.2.4 | React DOM rendering |
+| `axios` | 1.13.6 | HTTP client for API calls |
+| `recharts` | 3.8.1 | Charts and visualization |
+| `lucide-react` | 1.7.0 | Icon library |
+
+### Dev Dependencies
+
+| Package | Version | Purpose |
+|---|---|---|
+| `vite` | 8.0.1 | Build tool & dev server |
+| `eslint` | 9.39.4 | Code linting |
+| `@vitejs/plugin-react` | Latest | React plugin for Vite |
+
+Run `npm install` to install all dependencies. See `package.json` for complete list.
+
+---
+
+## Performance Optimization
+
+### Code Splitting
+- Vite automatically splits code chunks for optimal loading
+- Components are code-split based on routes
+
+### Caching
+- HTTP responses are cached where appropriate
+- Use browser devtools to monitor network activity
+
+### Bundle Size
+Check bundle size with:
+```bash
+npm run build
+# Check dist/ folder size
+```
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the frontend directory if needed:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+Then update `src/api/api.js`:
+```javascript
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+```
+
+---
+
 ## Contributing
 
-1. Keep code clean with ESLint checks
-2. Follow React best practices
-3. Add comments for complex logic
-4. Test changes in development mode before committing
+1. Follow React best practices and hooks conventions
+2. Keep components small and focused (single responsibility)
+3. Use meaningful variable and function names
+4. Run `npm run lint` before committing
+5. Test changes in development mode
+6. Write comments for complex logic
+
+**Commit Format:**
+```
+feat: Add stock comparison feature
+fix: Resolve CORS issue
+refactor: Simplify chart component
+```
 
 ---
 
