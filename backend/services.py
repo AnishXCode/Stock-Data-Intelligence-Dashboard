@@ -19,15 +19,36 @@ def getCompanies(startIdx):
             for d in data
         ]
 
+# Function to get searched stock
+def getSearchedStock(symbol):
+    if "." in symbol:
+        symbol = symbol.split(".")[0]
+
+    with Session() as session:
+        data = session.query(Stocks).filter_by(symbol=symbol).all()
+
+        return [
+            {
+                "id": d.id,
+                "name": d.name,
+                "symbol": d.symbol,
+                "date_listing": d.date_listing
+            }
+            for d in data
+        ]
+
 # Function to search for stocks with name
 def getStocksWithName(name: str):
     try:
         search = yf.Search(name)
         for obj in search.quotes:
-            if obj.get("exchange") == 'NSI':
-                return obj["symbol"]
+            if obj.get("exchange") in ['NSI', 'BSE']:
+                return obj.get("symbol")
+        
+        if search.quotes and "symbol" in search.quotes[0]:
+            return search.quotes[0]["symbol"]
 
-        return search.quotes[0] if search.quotes else None
+        return None
     except Exception as e:
         print(f"Error searching stock with name: {e}")
         return None
@@ -35,6 +56,9 @@ def getStocksWithName(name: str):
 
 # Function to download last 30 days of stock data
 def getStockData(symbol: str):
+    if "." not in symbol:
+            symbol = symbol + ".NS"
+
     try:
         df = yf.download(symbol, period="1y", interval="1d")
     except Exception as e:
@@ -91,6 +115,8 @@ def getStockData(symbol: str):
 
 # Function to send last 30 days of stock data in JSON
 def getStockDataFormatted(symbol: str):
+    if "." not in symbol:
+            symbol = symbol + ".NS"
     try:
         with Session() as session:
             data = session.query(StockData).filter_by(symbol=symbol).all()
@@ -175,6 +201,11 @@ def interpretCorr(corr):
      
 # Function to compare 2 stocks
 def getComparision(symbol1: str, symbol2: str):
+    if "." not in symbol1:
+            symbol1 = symbol1 + ".NS"
+    if "." not in symbol2:
+            symbol2 = symbol2 + ".NS"
+
     try:
         stock1 = yf.download(symbol1, period="1y")
         stock2 = yf.download(symbol2, period="1y")

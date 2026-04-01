@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from services import getStockSummary, getStockDataFormatted, getStocksWithName, getCompanies, getComparision
+from services import getStockSummary, getStockDataFormatted, getStocksWithName, getCompanies, getComparision, getSearchedStock
 
 router = APIRouter()
 
@@ -22,8 +22,13 @@ def companies( startIdx: int = 0):
 def findStock(name: str):
     symbol = getStocksWithName(name)
     if not symbol:
-        raise HTTPException(status_code=404, detail="Stock not found")
-    return symbol
+        raise HTTPException(status_code=404, detail="Searched Stock not found")
+    
+    data = getSearchedStock(symbol=symbol)
+    if not data:
+        raise HTTPException(status_code=404, detail="Searched Stock not found")
+    return data
+
 
 # Get Stock data of last 30 days
 @router.get(
