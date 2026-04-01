@@ -1,6 +1,5 @@
 import yfinance as yf
 import pandas as pd
-import numpy as np
 from db import Session
 from models import StockData, Stocks
 
