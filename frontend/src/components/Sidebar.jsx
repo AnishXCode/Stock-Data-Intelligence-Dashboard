@@ -76,7 +76,7 @@ export default function Sidebar({ onSelect, activeSymbol }) {
             const newPage = Math.max(0, page - 30);
             setPage(newPage); 
             fetchList(newPage); 
-          }}>Prev</button>
+          }} disabled={page === 0}>Prev</button>
           <span className="page-indicator">Page {(page / 30) + 1}</span>
           <button onClick={() => { 
             const newPage = page + 30;
